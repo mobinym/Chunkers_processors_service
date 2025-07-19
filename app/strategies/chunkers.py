@@ -1,18 +1,18 @@
-# app/strategies/chunkers.py
+# document_processor/app/strategies/chunkers.py
 import re
-from typing import List
 import logging
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaLLM # ✅ استفاده از کلاس جدید و صحیح
-from langchain_core.prompts import ChatPromptTemplate
+from typing import List
+from langchain_ollama import OllamaLLM # ✅ اصلاح این خط
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from .base import ChunkerStrategy
 
 logger = logging.getLogger(__name__)
 
 class RecursiveChunker(ChunkerStrategy):
-    """استراتژی چانک کردن بازگشتی با استفاده از LangChain."""
     def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
@@ -20,18 +20,18 @@ class RecursiveChunker(ChunkerStrategy):
             separators=["\n\n", "\n", ". ", " ", ""]
         )
 
-    def chunk(self, text: str) -> List[str]:
-        return self.splitter.split_text(text)
+    def chunk(self, documents: List[Document]) -> List[Document]:
+        return self.splitter.split_documents(documents)
+
 
 class CustomSentenceChunker(ChunkerStrategy):
-    """استراتژی چانک کردن سفارشی شما بر اساس جملات با همپوشانی."""
     def __init__(self, max_chars: int = 900, overlap: int = 100):
         self.max_chars = max_chars
         self.overlap = overlap
         self._SENT_BOUNDARY = re.compile(r"(?<=[.!?؟])\s+")
         self._WS_CLEAN = re.compile(r"\s+")
 
-    def chunk(self, text: str) -> List[str]:
+    def _chunk_text_logic(self, text: str) -> List[str]:
         clean = self._WS_CLEAN.sub(" ", text).strip()
         sentences = self._SENT_BOUNDARY.split(clean)
         
@@ -55,11 +55,23 @@ class CustomSentenceChunker(ChunkerStrategy):
 
         return [c for c in chunks if c]
 
-# ✅ بازنویسی شده بر اساس کد موفق شما با استفاده از LangChain
+    def chunk(self, documents: List[Document]) -> List[Document]:
+        final_docs = []
+        for doc in documents:
+            text_chunks = self._chunk_text_logic(doc.page_content)
+            for chunk_content in text_chunks:
+                new_doc = Document(
+                    page_content=chunk_content,
+                    metadata=doc.metadata.copy() 
+                )
+                final_docs.append(new_doc)
+        return final_docs
+
+
 class OllamaSemanticChunker(ChunkerStrategy):
     def __init__(self, model_name: str = "gemma3:4b", base_url: str = "http://services.aiopt.io:11434"):
         self.model = OllamaLLM(model=model_name, base_url=base_url)
-        self.prompt_template = (
+        self.prompt = ChatPromptTemplate.from_template(
             "You are an expert in identifying semantic meaning of text. "
             "You wrap each chunk in <<<>>>.\n\n"
             "Example:\n"
@@ -73,8 +85,6 @@ class OllamaSemanticChunker(ChunkerStrategy):
             "Now, process the following text:\n\n"
             "{paragraph}"
         )
-
-        self.prompt = ChatPromptTemplate.from_template(self.prompt_template)
         self.output_parser = StrOutputParser()
         self.chain = (
             {"paragraph": RunnablePassthrough()}
@@ -83,25 +93,31 @@ class OllamaSemanticChunker(ChunkerStrategy):
             | self.output_parser
         )
 
-    def chunk(self, text: str) -> List[str]:
-        preliminary_chunks = text.split("\n\n")
-        final_chunks = []
-        for i, paragraph in enumerate(preliminary_chunks):
+    def chunk(self, documents: List[Document]) -> List[Document]:
+        final_docs = []
+        for doc in documents:
+            paragraph = doc.page_content
             if not paragraph.strip():
                 continue
             
-            logger.info(f"Processing paragraph {i+1}/{len(preliminary_chunks)} with Ollama...")
+            logger.info(f"Processing page {doc.metadata.get('page', 'N/A')} with Ollama...")
             try:
                 response = self.chain.invoke(paragraph)
                 newly_found_chunks = re.findall(r'<<<(.*?)>>>', response, re.DOTALL)
                 
                 if newly_found_chunks:
-                    final_chunks.extend([chunk.strip() for chunk in newly_found_chunks if chunk.strip()])
+                    for chunk_content in newly_found_chunks:
+                        if chunk_content.strip():
+                            new_doc = Document(
+                                page_content=chunk_content.strip(),
+                                metadata=doc.metadata.copy() 
+                            )
+                            final_docs.append(new_doc)
                 else:
-                    logger.warning(f"Ollama model did not return valid chunks for paragraph {i+1}. Using the whole paragraph as a chunk.")
-                    final_chunks.append(paragraph.strip())
+                    logger.warning(f"Ollama model did not return valid chunks for page {doc.metadata.get('page', 'N/A')}. Using the whole page as a chunk.")
+                    final_docs.append(doc)
             except Exception as e:
-                logger.error(f"Error calling Ollama chain for paragraph {i+1}: {e}. Using the whole paragraph as a fallback.")
-                final_chunks.append(paragraph.strip())
-
-        return final_chunks
+                logger.error(f"Error calling Ollama chain for page {doc.metadata.get('page', 'N/A')}: {e}. Using the whole page as a fallback.")
+                final_docs.append(doc)
+                
+        return final_docs
