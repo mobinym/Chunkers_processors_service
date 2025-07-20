@@ -50,7 +50,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
         content={"success": False, "error": {"code": 99999, "message": "An internal server error occurred."}},
     )
 
-@app.post("/v1/documents/process/", response_model=ProcessResponse)
+@app.post("/v1/chn/chunking/", response_model=ProcessResponse)
 async def process_document(
     file: UploadFile = File(...),
     extractor_strategy: str = Form("pypdf", description="Supported: docling, pypdf"),
