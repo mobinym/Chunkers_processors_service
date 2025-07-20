@@ -9,6 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from .base import ChunkerStrategy
+from langchain.text_splitter import SentenceTransformersTokenTextSplitter
+
 
 logger = logging.getLogger(__name__)
 
@@ -121,3 +123,17 @@ class OllamaSemanticChunker(ChunkerStrategy):
                 final_docs.append(doc)
                 
         return final_docs
+    
+
+class TokenTextChunker(ChunkerStrategy):
+    """یک استراتژی چانکینگ مبتنی بر توکن‌های مدل embedding."""
+    
+    def __init__(self, chunk_size: int = 256, chunk_overlap: int = 32, model_name: str = "BAAI/bge-m3"):
+        self.splitter = SentenceTransformersTokenTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            model_name=model_name
+        )
+
+    def chunk(self, documents: List[Document]) -> List[Document]:
+        return self.splitter.split_documents(documents)

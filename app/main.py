@@ -9,8 +9,9 @@ from fastapi.exceptions import RequestValidationError
 from .models import ProcessResponse, Chunk
 from .errors import ServiceException
 
-from .strategies.extractors import DoclingExtractor, PyMuPDFExtractor
-from .strategies.chunkers import RecursiveChunker, CustomSentenceChunker, OllamaSemanticChunker
+from .strategies.extractors import DoclingExtractor, LangChainPyMuPDFExtractor, PyPDFExtractor
+from .strategies.chunkers import RecursiveChunker, CustomSentenceChunker, OllamaSemanticChunker, TokenTextChunker
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,12 +23,14 @@ app = FastAPI(
 
 EXTRACTORS = {
     "docling": DoclingExtractor(),
-    "pypdf": PyMuPDFExtractor(),
+    "langchain_pypdf": LangChainPyMuPDFExtractor(),
+    "pypdf": PyPDFExtractor(), 
 }
 CHUNKERS = {
     "recursive": RecursiveChunker(),
     "custom_sentence": CustomSentenceChunker(),
     "ollama_semantic": OllamaSemanticChunker(),
+    "token_based": TokenTextChunker(), 
 }
 
 @app.exception_handler(ServiceException)
@@ -53,8 +56,8 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.post("/v1/chn/chunking/", response_model=ProcessResponse)
 async def process_document(
     file: UploadFile = File(...),
-    extractor_strategy: str = Form("pypdf", description="Supported: docling, pypdf"),
-    chunker_strategy: str = Form("recursive", description="Supported: recursive, custom_sentence, ollama_semantic")
+    extractor_strategy: str = Form("pypdf", description="Supported: docling, langchain_pypdf, pypdf"),
+    chunker_strategy: str = Form("recursive", description="Supported: recursive, custom_sentence, ollama_semantic, token_based")
 ):
     if extractor_strategy not in EXTRACTORS:
         raise ServiceException(status_code=400, error_code=20001, message=f"Extractor strategy '{extractor_strategy}' is not supported.")
