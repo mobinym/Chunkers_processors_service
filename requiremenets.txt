@@ -1,0 +1,18 @@
+# document_processor/requirements.txt
+fastapi
+uvicorn
+pydantic
+python-multipart
+
+# کتابخانه‌های اصلی LangChain
+langchain-community
+langchain-core
+langchain-text-splitters
+langchain-ollama # ✅ برای استفاده از کلاس جدید OllamaLLM
+
+# ابزارهای پردازش سند
+docling
+PyMuPDF # ✅ برای استفاده از PyMuPDFLoader
+
+# وابستگی‌های دیگر
+torch>=2.3.0 --index-url https://download.pytorch.org/whl/cpu
