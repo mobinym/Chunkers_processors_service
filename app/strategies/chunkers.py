@@ -2,7 +2,7 @@
 import re
 import logging
 from typing import List
-from langchain_ollama import OllamaLLM # ✅ اصلاح این خط
+from langchain_ollama import OllamaLLM 
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -126,8 +126,6 @@ class OllamaSemanticChunker(ChunkerStrategy):
     
 
 class TokenTextChunker(ChunkerStrategy):
-    """یک استراتژی چانکینگ مبتنی بر توکن‌های مدل embedding."""
-    
     def __init__(self, chunk_size: int = 256, chunk_overlap: int = 32, model_name: str = "BAAI/bge-m3"):
         self.splitter = SentenceTransformersTokenTextSplitter(
             chunk_size=chunk_size,

@@ -17,12 +17,9 @@ class LangChainPyMuPDFExtractor(ExtractorStrategy):
     def extract(self, file_path: str) -> List[Document]:
         loader = PyMuPDFLoader(file_path)
         return loader.load()
-# ✅ استراتژی جدید بر اساس کد شما
+
 class PyPDFExtractor(ExtractorStrategy):
-    """استراتژی استخراج متن با pypdf و پاک‌سازی اولیه."""
-    
     def _clean_text(self, text: str) -> str:
-        """تابع پاک‌سازی متن شما."""
         if not text:
             return ""
         text = re.sub(r'\s+', ' ', text)
