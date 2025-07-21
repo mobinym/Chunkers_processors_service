@@ -60,6 +60,28 @@ async def process_document(
     extractor_strategy: str = Form("pypdf", description="Supported: docling, pypdf, pdfFA, docx" ),
     chunker_strategy: str = Form("token_based", description="Supported: recursive, custom_sentence, ollama_semantic, ollama_semantic_p, token_based")
 ):
+    #check docx file for extractor strategies
+    filename = file.filename.lower()
+
+    is_word_file = filename.endswith(".docx") or filename.endswith(".doc")
+
+    if is_word_file:
+        if extractor_strategy != "docx":
+            raise ServiceException(
+                status_code=400,
+                error_code=20003,
+                message="For Word documents (.docx), the extractor_strategy must be 'docx'."
+            )
+        extractor_strategy = "docx"  
+
+   
+    elif extractor_strategy == "docx":
+        raise ServiceException(
+            status_code=400,
+            error_code=20004,
+            message="Extractor strategy 'docx' is only valid for Word documents."
+        )
+    
     if extractor_strategy not in EXTRACTORS:
         raise ServiceException(status_code=400, error_code=20001, message=f"Extractor strategy '{extractor_strategy}' is not supported.")
     if chunker_strategy not in CHUNKERS:
