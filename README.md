@@ -12,19 +12,31 @@ A standalone FastAPI service designed to extract text from various document form
 This service acts as a powerful pre-processing engine for RAG (Retrieval-Augmented Generation) pipelines. It accepts a file and allows the user to select from various strategies for both text extraction and text chunking, ensuring the output is perfectly tailored to the needs of the downstream embedding and language models.
 
 -----
-
 ## ✨ Features
 
-  * **Modular Strategy Pattern:** Easily extend the service by adding new extraction or chunking methods without changing the core API logic.
-  * **Multiple Text Extractors:**
-      * `docling`: A powerful library for converting various formats (PDF, DOCX, etc.) into clean Markdown.
-      * `pypdf`: A fast and reliable method for extracting raw text and page numbers directly from PDF files using `PyMuPDFLoader`.
-  * **Multiple Chunking Strategies:**
-      * `recursive`: A robust character-based splitter from LangChain.
-      * `custom_sentence`: A custom sentence-based splitter with configurable overlap.
-      * `ollama_semantic`: An advanced LLM-based chunker that splits text based on semantic meaning.
-  * **Metadata Preservation:** Automatically extracts and preserves the page number for each chunk, which is critical for providing sources in RAG responses.
-  * **Standardized Error Handling:** All errors (invalid strategy, file processing issues, etc.) are returned in a consistent and machine-readable JSON format.
+* **Modular Strategy Pattern:**  
+  Easily extend the service by adding new extraction or chunking methods without changing the core API logic.
+
+* **Multiple Text Extractors with Contextual Enforcement:**  
+  - `docling`: A powerful library for converting various formats (PDF, DOCX, etc.) into clean Markdown.  
+  - `pypdf`: A fast and reliable method for extracting raw text and page numbers directly from PDF files using `PyMuPDFLoader`.  
+  - `pdfFA`: Another PDF extraction strategy.  
+  - `docx`: Specifically designed to extract text from Word documents (`.doc`, `.docx`).  
+  - **Important:** When uploading Word documents (`.doc` or `.docx`), the extractor strategy is **forced to `docx`** and no other extractor can be selected. Attempting to choose a different extractor for Word files will result in an error. Likewise, selecting the `docx` extractor for non-Word files will also raise an error.
+
+* **Multiple Chunking Strategies:**  
+  - `recursive`: A robust character-based splitter from LangChain.  
+  - `custom_sentence`: A custom sentence-based splitter with configurable overlap.  
+  - `ollama_semantic`: An advanced LLM-based chunker that splits text based on semantic meaning.  
+  - `ollama_semantic_p`: Persian language variant of semantic chunker.  
+  - `token_based`: A chunker based on token counts.
+
+* **Metadata Preservation:**  
+  Automatically extracts and preserves the page number for each chunk, which is critical for providing sources in RAG responses.
+
+* **Standardized Error Handling:**  
+  All errors (invalid strategy, file processing issues, etc.) are returned in a consistent and machine-readable JSON format.
+
 
 -----
 
@@ -177,5 +189,7 @@ All errors are returned in a standardized JSON format.
 | :--- | :--- | :--- |
 | **20001** | `Extractor strategy '<name>' is not supported.` | `400 Bad Request` |
 | **20002** | `Chunker strategy '<name>' is not supported.` | `400 Bad Request` |
+| **20003** | `For Word documents (.docx), the extractor_strategy must be 'docx'.` | `400 Bad Request` |
+| **20004** | `Extractor strategy 'docx' is only valid for Word documents.` | `400 Bad Request` |
 | **20000** | `Invalid input provided.` (e.g., no file uploaded) | `422 Unprocessable Entity` |
 | **99999** | `An internal server error occurred.` (e.g., `docling` fails) | `500 Internal Server Error` |
