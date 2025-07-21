@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from .models import ProcessResponse, Chunk
 from .errors import ServiceException
 
-from .strategies.extractors import DoclingExtractor, LangChainPyMuPDFExtractor
+from .strategies.extractors import DoclingExtractor, LangChainPyMuPDFExtractor , PyPDFExtractor , DocxExtractor
 from .strategies.chunkers import RecursiveChunker, CustomSentenceChunker, OllamaSemanticChunker , OllamaSemanticChunkerPersian , TokenTextChunker
 
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +23,8 @@ app = FastAPI(
 EXTRACTORS = {
     "docling": DoclingExtractor(),
     "pypdf": LangChainPyMuPDFExtractor(),
+    "pdfFA" : PyPDFExtractor(),
+    "docx"  : DocxExtractor(),
 }
 CHUNKERS = {
     "recursive": RecursiveChunker(),
@@ -55,7 +57,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.post("/v1/documents/process/", response_model=ProcessResponse)
 async def process_document(
     file: UploadFile = File(...),
-    extractor_strategy: str = Form("pypdf", description="Supported: docling, pypdf"),
+    extractor_strategy: str = Form("pypdf", description="Supported: docling, pypdf, pdfFA, docx" ),
     chunker_strategy: str = Form("token_based", description="Supported: recursive, custom_sentence, ollama_semantic, ollama_semantic_p, token_based")
 ):
     if extractor_strategy not in EXTRACTORS:
@@ -71,6 +73,7 @@ async def process_document(
         
         extractor = EXTRACTORS[extractor_strategy]
         pages_as_docs = extractor.extract(temp_file_path)
+       
 
         chunker = CHUNKERS[chunker_strategy]
         chunks_as_docs = chunker.chunk(pages_as_docs)
