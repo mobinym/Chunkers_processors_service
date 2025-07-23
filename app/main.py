@@ -99,6 +99,34 @@ async def process_document(
 
         chunker = CHUNKERS[chunker_strategy]
         chunks_as_docs = chunker.chunk(pages_as_docs)
+        # استخراج metadata عمومی فایل فقط از اولین صفحه
+        file_metadata = {
+            k: v for k, v in pages_as_docs[0].metadata.items()
+            if k not in ["page", "source"]
+        }
+
+        # پاکسازی metadata تکراری از هر chunk
+        # response_chunks = []
+        # for doc in chunks_as_docs:
+        #     chunk_metadata = {
+        #         "page": doc.metadata.get("page"),
+        #         "source": doc.metadata.get("source")
+        #     }
+        #     response_chunks.append(
+        #         Chunk(page_content=doc.page_content, metadata=chunk_metadata)
+        #     )
+        response_chunks = []
+
+        for doc in chunks_as_docs:
+            chunk_metadata = {
+                "page": doc.metadata.get("page")
+            }
+            response_chunks.append(
+                Chunk(
+                    chunk_content=doc.page_content,  # درست!
+                    metadata=chunk_metadata
+                )
+            )
 
     except Exception as e:
         logger.error(f"An error occurred during processing: {e}", exc_info=True)
@@ -107,9 +135,10 @@ async def process_document(
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
-    response_chunks = [Chunk(page_content=doc.page_content, metadata=doc.metadata) for doc in chunks_as_docs]
+    # response_chunks = [Chunk(page_content=doc.page_content, metadata=doc.metadata) for doc in chunks_as_docs]
 
     return ProcessResponse(
+        file_metadata=file_metadata,
         chunks=response_chunks,
         total_chunks=len(response_chunks),
         extractor_used=extractor_strategy,
