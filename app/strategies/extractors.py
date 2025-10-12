@@ -46,19 +46,39 @@ class PyPDFExtractor(ExtractorStrategy):
         return docs
 # docx
 class DocxExtractor(ExtractorStrategy):
+    def __init__(self, paragraphs_per_page: int = 20):
+        """
+        Initializes the DocxExtractor.
+        Args:
+            paragraphs_per_page: The number of paragraphs to group into a single virtual "page".
+        """
+        if paragraphs_per_page <= 0:
+            raise ValueError("paragraphs_per_page must be a positive integer.")
+        self.paragraphs_per_page = paragraphs_per_page
+
     def extract(self, file_path: str) -> List[Document]:
         docs = []
         try:
             docx = DocxDocument(file_path)
-            full_text = []
-            for para in docx.paragraphs:
-                if para.text.strip():
-                    full_text.append(para.text.strip())
-            combined_text = "\n".join(full_text)
-            docs.append(Document(
-                page_content=combined_text,
-                metadata={"source": os.path.basename(file_path), "type": "docx"}
-            ))
+            all_paragraphs = [p.text.strip() for p in docx.paragraphs if p.text.strip()]
+            if not all_paragraphs:
+                return []
+
+            page_num = 1
+            for i in range(0, len(all_paragraphs), self.paragraphs_per_page):
+                page_paragraphs = all_paragraphs[i:i + self.paragraphs_per_page]
+                page_content = "\n\n".join(page_paragraphs)
+                docs.append(Document(
+                    page_content=page_content,
+                    metadata={
+                        "source": os.path.basename(file_path),
+                        "page": page_num, 
+                        "type": "docx"
+                    }
+                ))
+                page_num += 1
+
         except Exception as e:
-            print(f"Error processing DOCX: {e}")
+            print(f"Error processing DOCX: {e}") 
+        
         return docs
