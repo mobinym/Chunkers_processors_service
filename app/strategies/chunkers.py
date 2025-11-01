@@ -236,7 +236,7 @@ class OllamaSemanticChunkerPersian(ChunkerStrategy):
 #--------------------------------------------------------------------------------------------------------
 
 class TokenTextChunker(ChunkerStrategy):
-    def __init__(self, chunk_size: int = 256, chunk_overlap: int = 32, model_name: str = "BAAI/bge-m3"):
+    def __init__(self, chunk_size: int = 300, chunk_overlap: int = 30, model_name: str = "BAAI/bge-m3"):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)

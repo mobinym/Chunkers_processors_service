@@ -45,18 +45,14 @@ class PyPDFExtractor(ExtractorStrategy):
             print(f"Error processing PDF with pypdf: {e}")
         return docs
 # docx
-class DocxExtractor(ExtractorStrategy):
-    def __init__(self, paragraphs_per_page: int = 20):
-        """
-        Initializes the DocxExtractor.
-        Args:
-            paragraphs_per_page: The number of paragraphs to group into a single virtual "page".
-        """
-        if paragraphs_per_page <= 0:
-            raise ValueError("paragraphs_per_page must be a positive integer.")
-        self.paragraphs_per_page = paragraphs_per_page
 
+
+class DocxExtractor(ExtractorStrategy):
     def extract(self, file_path: str) -> List[Document]:
+        """
+        Extracts the entire DOCX file as a single 'page' document.
+        The page number is always set to 1 to avoid issues with chunking.
+        """
         docs = []
         try:
             docx = DocxDocument(file_path)
@@ -64,19 +60,15 @@ class DocxExtractor(ExtractorStrategy):
             if not all_paragraphs:
                 return []
 
-            page_num = 1
-            for i in range(0, len(all_paragraphs), self.paragraphs_per_page):
-                page_paragraphs = all_paragraphs[i:i + self.paragraphs_per_page]
-                page_content = "\n\n".join(page_paragraphs)
-                docs.append(Document(
-                    page_content=page_content,
-                    metadata={
-                        "source": os.path.basename(file_path),
-                        "page": page_num, 
-                        "type": "docx"
-                    }
-                ))
-                page_num += 1
+            page_content = "\n\n".join(all_paragraphs)
+            docs.append(Document(
+                page_content=page_content,
+                metadata={
+                    "source": os.path.basename(file_path),
+                    "page": 1,       
+                    "type": "docx"
+                }
+            ))
 
         except Exception as e:
             print(f"Error processing DOCX: {e}") 
