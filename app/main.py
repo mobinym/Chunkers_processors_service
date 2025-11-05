@@ -105,29 +105,20 @@ async def process_document(
             if k not in ["page", "source"]
         }
 
-        # پاکسازی metadata تکراری از هر chunk
-        # response_chunks = []
-        # for doc in chunks_as_docs:
-        #     chunk_metadata = {
-        #         "page": doc.metadata.get("page"),
-        #         "source": doc.metadata.get("source")
-        #     }
-        #     response_chunks.append(
-        #         Chunk(page_content=doc.page_content, metadata=chunk_metadata)
-        #     )
+
         response_chunks = []
 
-        for doc in chunks_as_docs:
-            chunk_metadata = {
-                "page": doc.metadata.get("page")
-            }
-            response_chunks.append(
-                Chunk(
-                    chunk_content=doc.page_content,  # درست!
-                    metadata=chunk_metadata
-                )
-            )
-
+        for chunk_number, doc in enumerate(chunks_as_docs, start=1):
+          chunk_metadata = {
+              "page": doc.metadata.get("page"),
+              "chunk_number": chunk_number 
+          }
+          response_chunks.append(
+              Chunk(
+                  chunk_content=doc.page_content,  
+                  metadata=chunk_metadata
+              )
+          )
     except Exception as e:
         logger.error(f"An error occurred during processing: {e}", exc_info=True)
         raise
